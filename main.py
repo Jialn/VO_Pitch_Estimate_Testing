@@ -40,21 +40,25 @@ if __name__ == "__main__":
     Y = np.array([])
     Z = np.array([])
 
-    # sift = cv.xfeatures2d.SIFT_create()
-    # for opencv above 4.4
-    sift = cv.SIFT_create() # nfeatures=600
-    FLANN_INDEX_KDTREE = 1
-    index_params = dict(algorithm = FLANN_INDEX_KDTREE, trees = 5)
-    search_params = dict(checks=100)
-    flann = cv.FlannBasedMatcher(index_params,search_params)
+    # for opencv with lower version
+    # feature_det = cv.xfeatures2d.SIFT_create()
+    if use_orb:
+        feature_det = cv.ORB_create()
+        matcher = cv.BFMatcher(cv.NORM_HAMMING)
+    else:
+        feature_det = cv.SIFT_create() # nfeatures=600
+        FLANN_INDEX_KDTREE = 1
+        index_params = dict(algorithm = FLANN_INDEX_KDTREE, trees = 5)
+        search_params = dict(checks=100)
+        matcher = cv.FlannBasedMatcher(index_params,search_params)
     for filename in os.listdir(images_dir):
         file = os.path.join(images_dir, filename)
         print(file)
         img = cv.imread(file)
 
         resized_img = cv.resize(img, (resize_w, resize_h))
-        print("detectAndCompute sift")
-        kp, desc = sift.detectAndCompute(resized_img,None)
+        print("detectAndCompute feature")
+        kp, desc = feature_det.detectAndCompute(cv.cvtColor(resized_img,cv.COLOR_BGR2GRAY),None)
         
         if iter == 0:
             prev_img = resized_img
@@ -62,22 +66,20 @@ if __name__ == "__main__":
             prev_desc = desc
         else:
             # FLANN parameters
-            print("find knn Matcher")
-            matches = flann.knnMatch(prev_desc,desc,k=2)
-            good = []
+            print("find Matcher")
+            matches = matcher.knnMatch(prev_desc,desc,k=2)
             pts1 = []
             pts2 = []
             # ratio test as per Lowe's paper
             for i,(m,n) in enumerate(matches):
                 if m.distance < 0.7*n.distance:  #  0.7*n.distance:
-                    good.append(m)
                     pts1.append(prev_kp[m.queryIdx].pt)
                     pts2.append(kp[m.trainIdx].pt)
                     
             pts1 = np.array(pts1)
             pts2 = np.array(pts2)
             print("findFundamentalMat")
-            F, mask = cv.findFundamentalMat(pts1,pts2,cv.FM_RANSAC, ransacReprojThreshold=2) #
+            F, mask = cv.findFundamentalMat(pts1,pts2,cv.FM_RANSAC, ransacReprojThreshold=1) #
             print("The fundamental matrix \n" + str(F))
 
             # We select only inlier points

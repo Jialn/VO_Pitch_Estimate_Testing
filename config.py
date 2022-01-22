@@ -8,8 +8,9 @@ save_dir = curr_dir_path + '/data/images'
 calibration_file_dir = curr_dir_path + '/data/calibration'
 ###########################################################################################
 
+use_orb = False # use orb or sift
 cali_horizon_y_percent = 52.5
-image_h_fov = 45 # deg
+image_h_fov = 38 # deg
 horizon_y_offset_percent = 0.0
 
 # resize_w, resize_h = 1600, 900
