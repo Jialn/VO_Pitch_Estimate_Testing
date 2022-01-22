@@ -19,7 +19,7 @@ def viz_3d_matplotlib(pt_3d):
     
     plt.show()
 
-def draw_3d_position(img, pts1, pts2, points_3d):
+def draw_3d_distance(img, pts1, pts2, points_3d):
     pts1 = np.int32(pts1)
     pts2 = np.int32(pts2)
     itera = 0
@@ -36,16 +36,11 @@ def draw_3d_position(img, pts1, pts2, points_3d):
 def draw_epipolar_lines(pts1, pts2, img1, img2, F):
     pts1 = np.int32(pts1)
     pts2 = np.int32(pts2)
-    # Find epilines corresponding to points in right image (second image) and
-    # drawing its lines on left image
-    lines1 = cv.computeCorrespondEpilines(pts2.reshape(-1,1,2), 2, F)
-    lines1 = lines1.reshape(-1,3)
-    img5,img6 = drawlines(img1,img2,lines1,pts1,pts2)
     # Find epilines corresponding to points in left image (first image) and
     # drawing its lines on right image
     lines2 = cv.computeCorrespondEpilines(pts1.reshape(-1,1,2), 1, F)
     lines2 = lines2.reshape(-1,3)
-    img3,img4 = drawlines(img2,img1,lines2,pts2,pts1)
+    img3,img4 = draw_epilines(img2.copy(),img1.copy(),lines2,pts2,pts1)
     img_match = drawmatch_img1(img2,img1,pts2,pts1)
     # plt.subplot(223)
     # plt.imshow(img3)
@@ -59,7 +54,6 @@ def draw_epipolar_lines(pts1, pts2, img1, img2, F):
 def drawmatch_hstack(img1, img2, pts1, pts2):
     ''' draw the corresponding matches '''
     img = np.hstack((img1, img2))
-    img = cv.cvtColor(img,cv.COLOR_GRAY2BGR)
     h, w = img1.shape[:2]
     for pt1,pt2 in zip(pts1,pts2):
         color = tuple(np.random.randint(0,255,3).tolist())
@@ -68,7 +62,6 @@ def drawmatch_hstack(img1, img2, pts1, pts2):
 
 def drawmatch_img1(img1, img2, pts1, pts2):
     ''' draw the corresponding matches '''
-    img1 = cv.cvtColor(img1,cv.COLOR_GRAY2BGR)
     # img2 = cv.cvtColor(img2,cv.COLOR_GRAY2BGR)
     # img1[:,:,0] = img1[:,:,0]*img2[:,:,0]//255
     # img1 = (img1 * 3 // 4 + img2 // 4).astype(np.uint8)
@@ -80,12 +73,10 @@ def drawmatch_img1(img1, img2, pts1, pts2):
         img1 = cv.circle(img1,tuple(pt1),4,color,1)
     return img1
     
-def drawlines(img1,img2,lines,pts1,pts2):
+def draw_epilines(img1,img2,lines,pts1,pts2):
     ''' img1 - image on which we draw the epilines for the points in img2
         lines - corresponding epilines '''
-    r,c = img1.shape
-    img1 = cv.cvtColor(img1,cv.COLOR_GRAY2BGR)
-    img2 = cv.cvtColor(img2,cv.COLOR_GRAY2BGR)
+    r,c = img1.shape[:2]
     for r,pt1,pt2 in zip(lines,pts1,pts2):
         color = tuple(np.random.randint(0,255,3).tolist())
         x0,y0 = map(int, [0, -r[2]/r[1] ])

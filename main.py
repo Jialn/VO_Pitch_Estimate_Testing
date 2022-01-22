@@ -3,19 +3,8 @@ import os
 import numpy as np
 import transform_helper as tf
 from bundle_adjustment import bundle_adjustment
-from plot_utils import draw_epipolar_lines, draw_3d_position
-
-######################### Path Variables ##################################################
-curr_dir_path = os.getcwd()
-images_dir = curr_dir_path + '/data/images/observatory'
-save_dir = curr_dir_path + '/data/images'
-calibration_file_dir = curr_dir_path + '/data/calibration'
-###########################################################################################
-
-cali_horizon_y_percent = 52.5
-image_h_fov = 45 # deg
-horizon_y_offset_percent = 0.0
-
+from plot_utils import draw_epipolar_lines, draw_3d_distance
+from config import *
 
 def get_camera_intrinsic_params():
     # np.savetxt(f,data)
@@ -61,9 +50,9 @@ if __name__ == "__main__":
     for filename in os.listdir(images_dir):
         file = os.path.join(images_dir, filename)
         print(file)
-        img = cv.imread(file, 0)
+        img = cv.imread(file)
 
-        resized_img = img
+        resized_img = cv.resize(img, (resize_w, resize_h))
         print("detectAndCompute sift")
         kp, desc = sift.detectAndCompute(resized_img,None)
         
@@ -88,7 +77,7 @@ if __name__ == "__main__":
             pts1 = np.array(pts1)
             pts2 = np.array(pts2)
             print("findFundamentalMat")
-            F, mask = cv.findFundamentalMat(pts1,pts2,cv.FM_RANSAC, ransacReprojThreshold=1) #
+            F, mask = cv.findFundamentalMat(pts1,pts2,cv.FM_RANSAC, ransacReprojThreshold=2) #
             print("The fundamental matrix \n" + str(F))
 
             # We select only inlier points
@@ -144,15 +133,15 @@ if __name__ == "__main__":
             absrpy = np.array(tf.mat2euler(R_t_1)) * 180.0/3.14159265
             
             img_epiline, img_match = draw_epipolar_lines(pts1, pts2, prev_img, resized_img, F)
-
-            img_match = draw_3d_position(img_match, pts1, pts2, points_3d)
+            if display_size_distance:
+                img_match = draw_3d_distance(img_match, pts1, pts2, points_3d)
 
             cv.putText(img_match,   "relative rx ry rz:"+str(rpy), (20, 20), cv.FONT_HERSHEY_PLAIN, 1.0, (255, 255, 255), thickness=1)
             cv.putText(img_match,   "abs rx ry rz:"+str(absrpy), (20, 40), cv.FONT_HERSHEY_PLAIN, 1.0, (255, 255, 255), thickness=1)
             cv.putText(img_match,   "relative xyz::"+str(t), (20, 60), cv.FONT_HERSHEY_PLAIN, 1.0, (255, 255, 255), thickness=1)
             
             h, w = img_match.shape[:2]
-            horizon_y_offset_percent = horizon_y_offset_percent * 0.98
+            horizon_y_offset_percent = horizon_y_offset_percent * (1-pitch_filter_gamma)
             horizon_y_offset_percent += (100*rpy[0]/image_h_fov)
 
             cv.putText(img_match,   "estimated Pitch::"+str(image_h_fov*horizon_y_offset_percent/100.0), (20, 80), cv.FONT_HERSHEY_PLAIN, 1.0, (255, 255, 255), thickness=1)
@@ -162,9 +151,9 @@ if __name__ == "__main__":
             cv.line(img_match, (0, (int)(h *cali_horizon_y_percent/100)), (w, (int)(h *cali_horizon_y_percent/100)), [255, 255, 255],1)
             print("relative RPY:"+str(rpy))
             print("relative zyz:"+str(t))
-            cv.imwrite(save_dir+'/matches/'+str(iter)+'.jpg', img_match)
-            cv.imwrite(save_dir+'/epilines/'+str(iter)+'.jpg', img_epiline)
+            zeros_to_append = (4 - len(str(iter))) * '0'
+            cv.imwrite(save_dir+'/matches/'+ zeros_to_append + str(iter)+'.jpg', img_match)
+            cv.imwrite(save_dir+'/epilines/'+ zeros_to_append+ str(iter)+'.jpg', img_epiline)
 
         iter = iter + 1
         print("iter:" + str(iter))
-        # if iter > 10: break
