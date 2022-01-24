@@ -39,6 +39,7 @@ if __name__ == "__main__":
     X = np.array([])
     Y = np.array([])
     Z = np.array([])
+    total_valid_pts = 0
 
     # for opencv with lower version
     # feature_det = cv.xfeatures2d.SIFT_create()
@@ -46,7 +47,7 @@ if __name__ == "__main__":
         feature_det = cv.ORB_create()
         matcher = cv.BFMatcher(cv.NORM_HAMMING)
     else:
-        feature_det = cv.SIFT_create() # nfeatures=600
+        feature_det = cv.SIFT_create(nfeatures=max_feature_num) 
         FLANN_INDEX_KDTREE = 1
         index_params = dict(algorithm = FLANN_INDEX_KDTREE, trees = 5)
         search_params = dict(checks=100)
@@ -109,6 +110,7 @@ if __name__ == "__main__":
             pts2_t = np.transpose(pts2)
 
             print("Shape pts 1\n" + str(pts1_t.shape))
+            total_valid_pts += pts1_t.shape[1]
 
             points_3d = cv.triangulatePoints(P1, P2, pts1_t, pts2_t)
             points_3d /= points_3d[3]
@@ -132,6 +134,7 @@ if __name__ == "__main__":
             if iter <=2 : rpy[0] = 0
             if rpy[0] > 90:     rpy[0] = rpy[0] - 180.0
             if rpy[0] < -90:    rpy[0] = rpy[0] + 180.0
+            if abs(rpy[0]) > 5.0:   rpy[0] = 0
             absrpy = np.array(tf.mat2euler(R_t_1)) * 180.0/3.14159265
             
             img_epiline, img_match = draw_epipolar_lines(pts1, pts2, prev_img, resized_img, F)
@@ -159,3 +162,4 @@ if __name__ == "__main__":
 
         iter = iter + 1
         print("iter:" + str(iter))
+    print("average valid pts after ransac:" + str(total_valid_pts / (iter-1)))
