@@ -13,7 +13,7 @@ cali_horizon_y_percent = 52.5
 image_h_fov = 38 # deg
 horizon_y_offset_percent = 0.0
 
-max_feature_num = 600
+max_feature_num = 9999
 # resize_w, resize_h = 1600, 900
 resize_w, resize_h = 1280, 720
 # resize_w, resize_h = 800, 450
@@ -21,4 +21,4 @@ resize_w, resize_h = 1280, 720
 pitch_filter_gamma = 0.01
 
 demo_video_fps = 15
-display_size_distance = False
+draw_distance_to_image = False

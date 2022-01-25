@@ -34,6 +34,7 @@ if __name__ == "__main__":
     R_t_0 = np.array([[1,0,0,0], [0,1,0,0], [0,0,1,0]])
     R_t_1 = np.empty((3,4))
     P1 = np.matmul(K, R_t_0)
+    initial_P = np.copy(P1)
     P2 = np.empty((3,4))
     pts_4d = []
     X = np.array([])
@@ -114,6 +115,14 @@ if __name__ == "__main__":
 
             points_3d = cv.triangulatePoints(P1, P2, pts1_t, pts2_t)
             points_3d /= points_3d[3]
+
+            # find point 3d in current frame
+            R_t_1_current_frame = np.empty((3,4))
+            R_t_1_current_frame[:3,:3] = R
+            R_t_1_current_frame[:3, 3] = t.ravel()
+            points_3d_in_current_frame = cv.triangulatePoints(initial_P, np.matmul(K, R_t_1_current_frame), pts1_t, pts2_t)
+            points_3d_in_current_frame /= points_3d_in_current_frame[3]
+
             # P2, points_3D = bundle_adjustment(points_3d, pts2_t, resized_img, P2)
             # print("done BA!")
             opt_variables = np.hstack((P2.ravel(), points_3d.ravel(order="F")))
@@ -138,8 +147,8 @@ if __name__ == "__main__":
             absrpy = np.array(tf.mat2euler(R_t_1)) * 180.0/3.14159265
             
             img_epiline, img_match = draw_epipolar_lines(pts1, pts2, prev_img, resized_img, F)
-            if display_size_distance:
-                img_match = draw_3d_distance(img_match, pts1, pts2, points_3d)
+            if draw_distance_to_image:
+                img_match = draw_3d_distance(img_match, pts1, pts2, points_3d_in_current_frame)
 
             cv.putText(img_match,   "relative rx ry rz:"+str(rpy), (20, 20), cv.FONT_HERSHEY_PLAIN, 1.0, (255, 255, 255), thickness=1)
             cv.putText(img_match,   "abs rx ry rz:"+str(absrpy), (20, 40), cv.FONT_HERSHEY_PLAIN, 1.0, (255, 255, 255), thickness=1)
